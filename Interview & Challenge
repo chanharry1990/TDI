@@ -1,0 +1,84 @@
+import pandas as pd
+import re
+from scipy.stats import pearsonr
+
+sheet1 = pd.read_csv('boston_311_calls.csv')
+
+# print(sum(sheet1['case_title'] == 'traffic'))
+# print(sheet1['case_title'].str.contains('traffic', case=False).value_counts()[True])
+
+# contains will check a column for a substring. the case=False means not case-sensitive.
+# value_counts() counts non-Nan elements in a series.
+
+count = 0
+total = 0
+case_title = sheet1['case_title']
+
+# for case in case_title:
+#     if 'traffic' in case:
+#         total += 1
+
+# need to account for TypeError: 'float' is not iterable
+
+for case in case_title:
+    total += 1
+    try:
+        if 'traffic' in case.lower():
+            count += 1
+    except TypeError:
+        None
+    except AttributeError:
+        None
+
+# AttributeError: 'float' has no 'lower'
+
+print(total)
+print(count)
+
+# what fraction of the calls have 'traffic' in the title?
+print(count/total)
+
+calls_per_district = {}
+police_district = sheet1['police_district']
+date_of_call = sheet1['open_dt']
+
+sheet1['police_district_recode'] = sheet1['police_district'].str.replace('-', '')
+sheet1['open_dt_recode'] = pd.to_datetime(sheet1['open_dt']).dt.year
+
+def extract_zipcode(address):
+    try:
+        zipcode = re.findall(r'\d{5}(?!\d)', address)[0]
+        return zipcode
+    except:
+        None
+
+
+sheet1['Zip Code'] = sheet1['location'].apply(lambda x: extract_zipcode(x))  # find zipcode based on location
+sheet1['num_calls'] = 1
+
+# need to convert 'zipcode' column into int64, other values into -1
+sheet1['Zip Code'] = sheet1['Zip Code'].fillna(-1).astype('int64')
+
+# calls_per_district = sheet1.groupby(['police_district_recode', 'open_dt_recode'])['num_calls'].size()
+# print(calls_per_district[3])
+
+sheet2 = pd.DataFrame({'sum': sheet1.groupby(['police_district_recode', 'open_dt_recode']).size()}).reset_index()
+# sheet2 is a new dataframe that groups calls per district per year.
+
+annual_call_per_district = sheet2.groupby(['police_district_recode'])['sum'].mean()
+# print(annual_call_per_district.median())
+
+sheet3 = pd.read_csv('boston_population_by_zip.csv')
+
+# count the number of calls by zipcode
+calls_by_zipcode = sheet1.groupby(['Zip Code']).count()[['num_calls']].reset_index()
+
+# merge the two dataframes on the zipcode column
+merged_df = pd.merge(calls_by_zipcode, sheet3, on='Zip Code')
+print(merged_df)
+# filter out the zipcodes with less than 1000 calls
+merged_df = merged_df[merged_df['num_calls'] >= 1000]
+
+# calculate the Pearson correlation coefficient
+corr_coefficient, _ = pearsonr(merged_df['num_calls'], merged_df['Population'])
+print(corr_coefficient)
