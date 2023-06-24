@@ -1,1 +1,45 @@
+import pandas as pd
+
+sheet1 = pd.read_csv("Value_of_Energy_Cost_Savings_Program_Savings_for_Businesses.csv")
+
+# how many different companies are in the data set?
+print(sheet1['Company Name'].value_counts())
+print("There are " + str(sheet1['Company Name'].nunique()) + " different companies")
+
+# What is the total number of jobs created for businesses in Queens?
+queens_only = sheet1.loc[sheet1['Borough']== "QUEENS"]
+jobs_created = queens_only['Job created'].sum()
+print(f"There are {jobs_created} jobs created in Queens")
+
+# How many different unique email domains names are there in the data set?
+
+unique_emails = sheet1['company email'].nunique()
+print(f"There are {unique_emails} unique emails")
+
+# but how many unique DOMAINS are there? For each email, extract the domain and save in a separate column
+
+sheet1["domain"] = sheet1['company email'].str.split('@').str[1]
+# the split function separates the str into a list,
+# based on how many times the string is split. In order to return the domain, we need to call the second item in the
+# list [1]. it's possible to return the name before the domain, using [0].
+print(sheet1.domain) # shows the entries of the column for "domain"
+print(sheet1.domain)
+# unique_domains = sheet1['domain'].nunique()
+# print(f"There are {unique_domains} unique domains")
+
+# Considering only NTAs with at least 5 listed businesses, what is the average total savings and the total jobs created for each NTA?
+# Each company lists an NTA, so to find NTAs with 5 listed business, find NTAs that show up over 5 times. Time to practice groupbys
+# Think of groupby as a way to reorganize data such that your split is your index/sort.
+
+isolated_ntas = sheet1.groupby('Neighborhood Tabulation Area (NTA) (2020)').size().loc[lambda x: x > 4]
+print(isolated_ntas)
+# Now that we have found the all the NTAs that have greater than 5 businesses, time to find the average total savings
+
+# Using the new "filtered" table, we can do something similar to a vlookup
+average_savings = sheet1[sheet1['Neighborhood Tabulation Area (NTA) (2020)'].isin(isolated_ntas.index)]['Total Savings'].mean()
+# This looks at the columns of the original sheet, and matches if it is found in the filtered table.
+# Since the filtered table moves the NTAs into the index (or first column), we use tell python to look in the index for the match
+# Once we've isolated the NTAs that match, we find the mean() of the 'Total Savings' column. 
+
+print(f"The average savings for NTAs with greater than 5 businesses is {average_savings}")
 
