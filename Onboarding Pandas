@@ -33,6 +33,7 @@ print(sheet1.domain)
 
 isolated_ntas = sheet1.groupby('Neighborhood Tabulation Area (NTA) (2020)').size().loc[lambda x: x > 4]
 print(isolated_ntas)
+# The lambda function is our filter. 
 # Now that we have found the all the NTAs that have greater than 5 businesses, time to find the average total savings
 
 # Using the new "filtered" table, we can do something similar to a vlookup
